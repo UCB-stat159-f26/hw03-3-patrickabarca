@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "player-career"
+version = "0.1.0"
+description = "HW3 Package for Tennis Career Data and Plots"
+authors = [{ name = "Patrick Abarca" }]
+dependencies = [
+    "numpy",
+    "pandas",
+    "requests",
+    "matplotlib",
+    "seaborn"
+]
