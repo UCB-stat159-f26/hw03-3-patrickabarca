@@ -80,25 +80,24 @@ def get_player_career(player):
     print("Downloading career data...")
     r = requests.get(url, timeout=10)
     print("Career data downloaded")
-    
+    #checking if input player exists in site
     if r.status_code == 404:
         raise ValueError(f"Player '{player}' not found.")
     r.raise_for_status()
 
-    # find player's 
+    # find player's birthday
     # different urls for male and female players
     for page in ["wplayer-classic.cgi", "player-classic.cgi"]:
-    profile_url = f"https://www.tennisabstract.com/cgi-bin/{page}?p={player_name}"
-
-    try:
-        profile = requests.get(profile_url, timeout=10).text
-    except requests.exceptions.Timeout:
-        print("Profile timed out:", page)
-        continue
-
-    if "var dob = " in profile:
-        bday = profile.split("var dob = ")[1].split(";")[0]
-        return career_data(r.text, pd.to_datetime(bday, format="%Y%m%d"))
+        profile_url = f"https://www.tennisabstract.com/cgi-bin/{page}?p={player_name}"
+        # try block to prevent excessive runtime due to site
+        try:
+            profile = requests.get(profile_url, timeout=10).text
+        except requests.exceptions.Timeout:
+            continue
+        #finding birthday in site
+        if "var dob = " in profile:
+            bday = profile.split("var dob = ")[1].split(";")[0]
+            return career_data(r.text, pd.to_datetime(bday, format="%Y%m%d"))
 
     raise ValueError(f"Birthday not found for '{player}'.")
     
