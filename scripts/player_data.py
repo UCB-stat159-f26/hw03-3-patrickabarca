@@ -3,6 +3,7 @@ import json
 import os
 import requests
 import numpy as np
+import re
 
 # Column names sourced from Tennis Abstract's
 # Serena Williams player page HTML source code (var matchhead).
@@ -41,8 +42,8 @@ def calculate_opp_age(player_fig_df):
 
     return player_fig_df
 
-# process dataframe for plotting
-def career_data(text, birthday):
+# process dataframe for plotting around birthday
+def career_data(text, bday):
     # raw dataframe
     player_df = extract_player_data(text)
 
@@ -54,7 +55,7 @@ def career_data(text, birthday):
     player_fig_df["date"] = pd.to_datetime(player_fig_df["date"], format="%Y%m%d")
 
     # calculating player's age
-    player_fig_df["age"] = (player_fig_df["date"] - pd.Timestamp(birthday)).dt.days / 365
+    player_fig_df["age"] = (player_fig_df["date"] - pd.Timestamp(bday)).dt.days / 365
 
     # calculating opponent's age
     player_fig_df = calculate_opp_age(player_fig_df)
@@ -63,4 +64,42 @@ def career_data(text, birthday):
     player_fig_df['age_difference'] = player_fig_df['age'] - player_fig_df['opp_age']
 
     return player_fig_df
+
+def get_player_career(player):
+    #checking for valid input                
+    if not player.strip():
+        raise ValueError("Please enter a player name.")
+    # format player name
+    if " " in player:
+        player_name = "".join(word.capitalize() for word in player.split())
+    else:
+        player_name = player[0].upper() + player[1:]
+    # download career data
+    url = f"https://www.tennisabstract.com/jsmatches/{player_name}Career.js"
+
+    print("Downloading career data...")
+    r = requests.get(url, timeout=10)
+    print("Career data downloaded")
+    
+    if r.status_code == 404:
+        raise ValueError(f"Player '{player}' not found.")
+    r.raise_for_status()
+
+    # find player's 
+    # different urls for male and female players
+    for page in ["wplayer-classic.cgi", "player-classic.cgi"]:
+    profile_url = f"https://www.tennisabstract.com/cgi-bin/{page}?p={player_name}"
+
+    try:
+        profile = requests.get(profile_url, timeout=10).text
+    except requests.exceptions.Timeout:
+        print("Profile timed out:", page)
+        continue
+
+    if "var dob = " in profile:
+        bday = profile.split("var dob = ")[1].split(";")[0]
+        return career_data(r.text, pd.to_datetime(bday, format="%Y%m%d"))
+
+    raise ValueError(f"Birthday not found for '{player}'.")
+    
 
